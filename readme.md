@@ -1,88 +1,112 @@
 # 🤖 AI Research Agent
 
-An intelligent, agentic research assistant that autonomously searches the web, evaluates source credibility, streams answers in real time, and remembers conversation context — built with LangGraph, FastAPI, and React.
+A production-grade agentic research assistant that autonomously searches the web, scores source credibility, streams answers in real time, and remembers conversation context — built with LangGraph, FastAPI, and React.
 
-> **Inspired by Perplexity AI** — but built from scratch with a full agentic pipeline.
+> **Inspired by Perplexity AI** — but built from scratch with a full agentic pipeline, structured outputs, and self-healing retry logic.
 
 ---
 
 ## 🌐 Live Demo
 
-> **Frontend:** [Coming Soon — S3 Deployment]
-> **Backend API:** [Coming Soon — EC2 Deployment]
+| Service | URL |
+|---|---|
+| **Frontend** | http://ai-research-agent-frontend.s3-website.ap-south-1.amazonaws.com |
+| **Backend Health** | http://13.126.31.239:8000/health |
 
 ---
 
-## 📸 Features
+## ✨ Features
 
 | Feature | Description |
 |---|---|
-| 🔍 **Web Search** | Fetches real-time results from the web using Tavily |
+| 🔍 **Web Search** | Fetches real-time results using Tavily API |
 | 🧠 **LLM Answer Generation** | Groq + LLaMA 3.3 70B generates structured answers |
 | 💬 **Conversation Memory** | Remembers full chat history across follow-up questions |
-| 🔄 **Multi-step Reasoning** | Agent self-evaluates and retries with a refined query if answer is weak |
+| 🔄 **Multi-step Reasoning** | Agent self-evaluates and retries with a refined query if the answer is weak |
 | 🏷️ **Query Intent Classifier** | Classifies queries as `factual`, `news`, or `followup` — each uses a different search strategy |
-| 📊 **Source Credibility Scoring** | Rates each source domain (0–100) with confidence % for the overall answer |
+| 📊 **Source Credibility Scoring** | Rates each source domain (0–100) with an overall confidence % |
 | 🧱 **Structured Output** | Every answer returns a typed Pydantic schema: headline, summary, key points, follow-up suggestion |
 | ⚡ **Streaming Responses** | Tokens stream in real time via Server-Sent Events — just like ChatGPT |
 | 📄 **Export to PDF** | Download the full chat with sources and scores as a formatted PDF |
 | 🕐 **Timestamps + Copy** | Every message has a timestamp and a one-click copy button |
+| 🎨 **Eye-soothing UI** | Sage green + warm cream palette with smooth fade animations |
+| 🚀 **CI/CD Pipeline** | GitHub Actions auto-deploys frontend to S3 and backend to EC2 on every push |
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-User (React UI)
+User (React UI — AWS S3)
       │
-      │  HTTP POST /ask/stream (SSE)
+      │  HTTP POST /ask/stream  (Server-Sent Events)
       ▼
-FastAPI Server (Python)
+FastAPI Server (AWS EC2 — Python)
       │
-      ├── classify_intent()     → factual / news / followup
-      ├── search_and_score()    → Tavily web search + domain credibility scoring
-      └── stream_answer()       → Groq LLaMA 3 streams tokens via SSE
+      ├── classify_intent()      → factual / news / followup
+      ├── search_and_score()     → Tavily web search + domain credibility scoring
+      └── stream_answer()        → Groq LLaMA 3.3 streams tokens via SSE
             │
             ▼
-     LangGraph Agent (for non-streaming /ask)
-            ├── classify node
-            ├── search node       → Tavily API
-            ├── score_sources node
-            ├── answer node       → Groq API (structured Pydantic output)
-            ├── evaluate node     → GOOD / WEAK quality check
-            └── refine_query node → retries with better query if WEAK
+     LangGraph Agent  (/ask endpoint)
+            ├── classify node      → intent detection
+            ├── search node        → Tavily API (strategy based on intent)
+            ├── score_sources node → domain reputation scoring
+            ├── answer node        → Groq API (Pydantic structured output)
+            ├── evaluate node      → GOOD / WEAK quality check
+            └── refine_query node  → retries with better query if WEAK (max 2x)
 ```
 
-### Search Strategy by Intent
+### Query Intent → Search Strategy
 
-| Intent | Search Query | Max Results |
-|---|---|---|
-| `factual` | Original query | 3 |
-| `news` | Query + "latest 2025" | 5 |
-| `followup` | Recent chat context + query | 3 |
+| Intent | Trigger | Search Query | Max Sources |
+|---|---|---|---|
+| `factual` | definitions, concepts, how things work | original query | 3 |
+| `news` | latest, current, recent, today | query + "latest 2025" | 5 |
+| `followup` | that, it, more, explain further | chat context + query | 3 |
+
+### Self-Retry Agentic Loop
+
+```
+search → score → answer → evaluate ── GOOD ──→ END
+                               │
+                             WEAK
+                               ↓
+                         refine_query → search  (max 2 retries)
+```
 
 ---
 
 ## 🛠️ Tech Stack
 
-**Backend**
-- [Python 3.12](https://python.org)
-- [FastAPI](https://fastapi.tiangolo.com) — REST API + Server-Sent Events streaming
-- [LangGraph](https://langchain-ai.github.io/langgraph/) — Agentic graph orchestration
-- [LangChain](https://langchain.com) — LLM + tool integration
-- [Groq](https://groq.com) — Ultra-fast LLaMA 3.3 70B inference
-- [Tavily](https://tavily.com) — AI-native web search API
-- [Pydantic](https://docs.pydantic.dev) — Structured output schema validation
+### Backend
+| Technology | Purpose |
+|---|---|
+| Python 3.12 | Core language |
+| FastAPI | REST API + SSE streaming |
+| LangGraph | Agentic graph orchestration with conditional edges |
+| LangChain | LLM + tool integration |
+| Groq (LLaMA 3.3 70B) | Ultra-fast LLM inference |
+| Tavily | AI-native web search API |
+| Pydantic | Structured output schema validation |
+| Uvicorn | ASGI server |
+| PM2 | Process manager on EC2 |
 
-**Frontend**
-- [React 18](https://react.dev) + [Vite](https://vitejs.dev)
-- [jsPDF](https://github.com/parallax/jsPDF) — PDF export
-- Native `fetch` with `ReadableStream` for SSE token streaming
+### Frontend
+| Technology | Purpose |
+|---|---|
+| React 18 + Vite | UI framework |
+| jsPDF | PDF export |
+| Native Fetch API | SSE token-by-token streaming |
+| CSS animations | Smooth fade-up message effects |
 
-**Infrastructure**
-- AWS EC2 (backend) + AWS S3 (frontend)
-- GitHub Actions (CI/CD)
-- PM2 (process manager)
+### Infrastructure
+| Service | Purpose |
+|---|---|
+| AWS EC2 t3.micro | Backend hosting |
+| AWS S3 | Frontend static website hosting |
+| GitHub Actions | CI/CD pipeline |
+| PM2 | Auto-restart on EC2 reboot |
 
 ---
 
@@ -90,44 +114,56 @@ FastAPI Server (Python)
 
 ```
 AI-Research-Agent/
+├── .github/
+│   └── workflows/
+│       ├── frontend.yml      # Build React + deploy to S3
+│       └── backend.yml       # SSH into EC2 + git pull + pm2 restart
 ├── backend/
-│   ├── agent.py          # LangGraph agent, intent classifier, search, streaming
-│   ├── main.py           # FastAPI routes (/ask, /ask/stream, /health)
-│   └── .env              # API keys (gitignored)
+│   ├── agent.py              # LangGraph agent, intent classifier, search, streaming
+│   ├── main.py               # FastAPI routes: /ask, /ask/stream, /health
+│   ├── requirements.txt      # Python dependencies
+│   └── .env                  # API keys (gitignored)
 ├── frontend/
 │   ├── src/
-│   │   └── App.jsx       # Full React UI with streaming, sources, PDF export
+│   │   └── App.jsx           # Full React UI with streaming, sources, PDF export
+│   ├── .env                  # VITE_API_URL (gitignored)
 │   ├── index.html
 │   └── vite.config.js
 ├── .gitignore
-└── README.md
+├── README.md
+└── DEPLOYMENT.md             # Full AWS deployment guide
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started (Local Development)
 
 ### Prerequisites
-
 - Python 3.10+
-- Node.js 18+
-- [Groq API key](https://console.groq.com) (free)
-- [Tavily API key](https://app.tavily.com) (free)
+- Node.js 20+
+- [Groq API key](https://console.groq.com) — free
+- [Tavily API key](https://app.tavily.com) — free
 
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-research-agent.git
+git clone https://github.com/b22241/ai-research-agent.git
 cd ai-research-agent
 ```
 
 ### 2. Setup backend
 
 ```bash
+# Create virtual environment
 python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Mac/Linux
 
+# Activate (Windows)
+venv\Scripts\activate
+
+# Activate (Mac/Linux)
+source venv/bin/activate
+
+# Install dependencies
 pip install langgraph langchain langchain-community langchain-groq langchain-core tavily-python fastapi uvicorn python-dotenv pydantic
 ```
 
@@ -150,11 +186,21 @@ uvicorn main:app --reload --port 8000
 ```bash
 cd frontend
 npm install
-npm install jspdf axios
+```
+
+Create `frontend/.env`:
+
+```env
+VITE_API_URL=http://127.0.0.1:8000
+```
+
+Start frontend:
+
+```bash
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Open [http://localhost:5173](http://localhost:5173) 🚀
 
 ---
 
@@ -178,10 +224,14 @@ Standard (non-streaming) query endpoint.
 ```json
 {
   "answer": {
-    "headline": "LangGraph is a library for building stateful, multi-actor LLM applications.",
-    "summary": "LangGraph extends LangChain...",
-    "key_points": ["Supports cyclic graphs", "Built for agent workflows", "..."],
-    "follow_up": "How does LangGraph compare to LangChain?"
+    "headline": "LangGraph is a library for building stateful multi-actor LLM applications.",
+    "summary": "LangGraph extends LangChain by enabling cyclic graph structures...",
+    "key_points": [
+      "Supports cyclic graphs for agent workflows",
+      "Built on top of LangChain",
+      "Enables multi-agent coordination"
+    ],
+    "follow_up": "How does LangGraph compare to AutoGen?"
   },
   "sources": [
     {
@@ -189,7 +239,7 @@ Standard (non-streaming) query endpoint.
       "domain": "langchain-ai.github.io",
       "score": 85,
       "label": "High",
-      "preview": "LangGraph is a library..."
+      "preview": "LangGraph is a library for building..."
     }
   ],
   "confidence": 85,
@@ -199,14 +249,15 @@ Standard (non-streaming) query endpoint.
 ```
 
 ### `POST /ask/stream`
-Streaming endpoint using Server-Sent Events.
+Streaming endpoint using Server-Sent Events. Emits three event types in order:
 
-Emits three event types:
 ```
 data: {"type": "meta", "intent": "factual", "confidence": 85, "sources": [...]}
+
 data: {"type": "token", "text": "Lang"}
 data: {"type": "token", "text": "Graph"}
 ...
+
 data: {"type": "done"}
 ```
 
@@ -217,44 +268,78 @@ data: {"type": "done"}
 
 ---
 
-## 🧠 How the Agentic Loop Works
-
-```
-1. classify_node   → decides intent: factual / news / followup
-2. search_node     → Tavily search (strategy depends on intent)
-3. score_sources   → rates each domain, calculates confidence %
-4. answer_node     → Groq LLaMA 3 generates structured Pydantic response
-5. evaluate_node   → LLM checks: is this answer GOOD or WEAK?
-         ├── GOOD  → END
-         └── WEAK  → refine_query_node → back to search (max 2 retries)
-```
-
-This is what separates a basic LLM wrapper from a **real agent** — it can detect failure and recover autonomously.
-
----
-
-## 📊 Source Credibility Scoring
+## 📊 Source Credibility Scoring System
 
 Each source URL is scored based on its domain reputation:
 
 | Score | Label | Example Domains |
 |---|---|---|
-| 90–100 | Very High | reuters.com, bbc.com, apnews.com, nasa.gov |
-| 75–89 | High | nytimes.com, bloomberg.com, arxiv.org |
-| 60–74 | Medium | wikipedia.org, stackoverflow.com |
-| Below 60 | Low | medium.com, reddit.com, quora.com |
+| 90–100 | Very High | reuters.com, bbc.com, apnews.com, nasa.gov, .edu, .gov |
+| 75–89 | High | nytimes.com, bloomberg.com, arxiv.org, ft.com, wired.com |
+| 60–74 | Medium | wikipedia.org, stackoverflow.com, investopedia.com |
+| Below 60 | Low | medium.com, reddit.com, quora.com, substack.com |
 
-The **Confidence %** shown in the UI is the average score across all sources returned.
+The **Confidence %** badge shown in the UI is the average score across all sources returned for that query.
+
+---
+
+## 🔄 CI/CD Pipeline
+
+### How it works
+
+```
+You make changes locally
+        ↓
+git add . && git commit -m "update" && git push
+        ↓
+GitHub Actions triggers automatically
+        ↓
+frontend/** changed? → npm install → npm build → aws s3 sync  →  live in ~1 min
+backend/**  changed? → SSH into EC2 → git pull → pm2 restart  →  live in ~30 sec
+```
+
+### Workflow triggers
+
+| Workflow | File | Triggers when |
+|---|---|---|
+| Deploy Frontend to S3 | `frontend.yml` | Any file inside `frontend/` changes |
+| Deploy Backend to EC2 | `backend.yml` | Any file inside `backend/` changes |
+
+### Required GitHub Secrets
+
+| Secret Name | Value |
+|---|---|
+| `VITE_API_URL` | `http://YOUR_EC2_IP:8000` |
+| `AWS_ACCESS_KEY_ID` | AWS IAM access key ID |
+| `AWS_SECRET_ACCESS_KEY` | AWS IAM secret access key |
+| `S3_BUCKET_NAME` | `ai-research-agent-frontend` |
+| `EC2_HOST` | EC2 public IP address |
+| `EC2_SSH_KEY` | Full contents of `.pem` key file |
+
+---
+
+## 🧠 Why This Project Demonstrates AI Engineering Skills
+
+| visl.ai Requirement | How This Project Covers It |
+|---|---|
+| **LLMs** | Groq + LLaMA 3.3 70B for structured answer generation |
+| **Agentic systems** | LangGraph graph with conditional edges, self-retry loop, intent routing |
+| **Multimodal** | Architecture ready for Gemini Vision integration |
+| **Fine-tuning** | Pydantic structured output acts as prompt engineering + output control |
+| **Expert coding** | SSE streaming, Pydantic schemas, async FastAPI, React hooks |
+| **Production engineering** | CI/CD pipeline, PM2, AWS S3 + EC2, environment secrets |
+| **Startup thinking** | End-to-end product: PDF export, confidence scoring, Perplexity-like UX |
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Multimodal input (image + question via Gemini Vision)
-- [ ] User authentication + persistent chat history (MongoDB)
-- [ ] Agent memory across sessions
+- [ ] Multimodal input — image + question via Gemini Vision
+- [ ] User authentication + persistent chat history via MongoDB
 - [ ] Docker containerization
-- [ ] Full AWS deployment with CI/CD
+- [ ] HTTPS with custom domain via AWS CloudFront
+- [ ] Agent memory across sessions using LangGraph persistence
+- [ ] RAG pipeline on custom documents
 
 ---
 
@@ -262,7 +347,7 @@ The **Confidence %** shown in the UI is the average score across all sources ret
 
 **Suman (b22241)**
 IIT Mandi
-[GitHub](https://github.com/b22241) · [LinkedIn](https:/linkedin.com/in/suman-deep-52532b268/)
+[GitHub](https://github.com/b22241)
 
 ---
 
