@@ -332,16 +332,6 @@ backend/**  changed? → SSH into EC2 → git pull → pm2 restart  →  live in
 
 ---
 
-## 🗺️ Roadmap
-
-- [ ] Multimodal input — image + question via Gemini Vision
-- [ ] User authentication + persistent chat history via MongoDB
-- [ ] Docker containerization
-- [ ] HTTPS with custom domain via AWS CloudFront
-- [ ] Agent memory across sessions using LangGraph persistence
-- [ ] RAG pipeline on custom documents
-
----
 
 ## 👤 Author
 
