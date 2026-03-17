@@ -10,7 +10,7 @@ A production-grade agentic research assistant that autonomously searches the web
 
 | Service | URL |
 |---|---|
-| **Frontend** | http://ai-research-agent-frontend.s3-website.ap-south-1.amazonaws.com |
+| **Website Link** | http://ai-research-agent-frontend.s3-website.ap-south-1.amazonaws.com |
 | **Backend Health** | http://13.126.31.239:8000/health |
 
 ---
