@@ -469,7 +469,7 @@ export default function App() {
         </div>
         <div style={{ maxWidth: 820, margin: "8px auto 0", fontFamily: "system-ui, sans-serif" }}>
           <p style={{ margin: 0, fontSize: 11, color: COLORS.textLight, textAlign: "center" }}>
-            Press Enter to send · Sources are scored by domain credibility
+            Press Enter to send · Sources are scored by domain credibility.
           </p>
         </div>
       </div>
