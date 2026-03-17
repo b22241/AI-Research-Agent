@@ -360,7 +360,7 @@ export default function App() {
               <div style={{ fontSize: 14, color: COLORS.textMuted, fontFamily: "system-ui, sans-serif" }}>I search the web, score sources, and stream answers in real time.</div>
             </div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", maxWidth: 600 }}>
-              {["Latest news on Iran-Israel war", "What is LangGraph?", "Top AI startups in 2025", "How does RAG work?"].map(q => (
+              {["Latest news on Iran-Israel war", "What is LangGraph?", "Top AI startups in 2026", "How does RAG work?"].map(q => (
                 <SuggestedQuery key={q} q={q} onClick={setInput} />
               ))}
             </div>
