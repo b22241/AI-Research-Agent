@@ -94,7 +94,7 @@ Reply with ONLY one word: factual, news, or followup"""
 # ── Search + Score ─────────────────────────────────────
 def search_and_score(query: str, intent: str, chat_history: list) -> dict:
     if intent == "news":
-        search_query = f"{query} latest 2025"
+        search_query = f"{query} latest 2026"
         search_tool = TavilySearchResults(max_results=5)
     elif intent == "followup" and chat_history:
         recent = chat_history[-4:]
@@ -103,7 +103,7 @@ def search_and_score(query: str, intent: str, chat_history: list) -> dict:
         search_tool = TavilySearchResults(max_results=3)
     else:
         search_query = query
-        search_tool = TavilySearchResults(max_results=3)
+        search_tool = TavilySearchResults(max_results=7)
 
     results = search_tool.invoke(search_query)
     formatted = "\n\n".join([f"Source: {r['url']}\n{r['content']}" for r in results])
@@ -135,12 +135,14 @@ Structure your response EXACTLY like this with these exact labels:
 
 HEADLINE: [one sentence direct answer]
 
-SUMMARY: [2-3 sentence explanation]
+SUMMARY: [6-7 sentence explanation]
 
 KEY POINTS:
 - [point 1]
 - [point 2]
 - [point 3]
+- [point 4]
+- [point 5]
 
 FOLLOW-UP: [one suggested follow-up question]""")
     ]
