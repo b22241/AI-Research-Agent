@@ -13,7 +13,7 @@ load_dotenv()
 # ── Structured Output Schema ───────────────────────────
 class ResearchAnswer(BaseModel):
     headline: str = Field(description="One sentence direct answer to the question")
-    summary: str = Field(description="2-3 sentence detailed explanation")
+    summary: str = Field(description="5-6 sentence detailed explanation")
     key_points: List[str] = Field(description="3 to 5 bullet point key findings")
     follow_up: str = Field(description="One suggested follow-up question the user might want to ask")
 
